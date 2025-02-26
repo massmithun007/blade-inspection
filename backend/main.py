@@ -31,8 +31,11 @@ if not model_path.exists():
 
 model = YOLO(str(model_path))
 
-# Class names based on your dataset
-CLASS_NAMES = ["blade shape", "blade edges", "blunt edge", "edge damage", "shape damage"]
+# Updated class names based on dataset
+CLASS_NAMES = [
+    "blade", "blade edge", "blade shape", "blunt edge",
+    "blade-edges", "edge damage", "shape damage", "blunt edge."
+]
 
 @app.post("/predict")
 async def predict(images: List[UploadFile] = File(...)):
@@ -54,25 +57,37 @@ async def predict(images: List[UploadFile] = File(...)):
             # Run YOLOv8 inference
             yolo_results = model(temp_image_path)
 
-            # Check classification
-            is_damaged = False
-            is_blade = False
+            blade_results = []  # List to store detected blades
+
+            # Process each detection
             for result in yolo_results:
-                for cls in result.boxes.cls.tolist():
+                boxes = result.boxes.xyxy.tolist()  # Bounding boxes
+                classes = result.boxes.cls.tolist()  # Class labels
+
+                blade_id = 1  # Blade counter
+
+                for box, cls in zip(boxes, classes):
                     class_name = CLASS_NAMES[int(cls)]
-                    if class_name in ["blade shape", "blade edges"]:
-                        is_blade = True  # Confirm image contains a blade
-                    if class_name in ["blunt edge", "edge damage", "shape damage"]:
-                        is_damaged = True
 
-            if not is_blade:
-                classification = "Not a blade"
+                    if class_name == "blade":
+                        is_damaged = False
+
+                        # Check if the detected blade has any defects
+                        for sub_cls in classes:
+                            defect_class = CLASS_NAMES[int(sub_cls)]
+                            if defect_class in ["blunt edge", "edge damage", "shape damage"]:
+                                is_damaged = True
+
+                        classification = "Damaged" if is_damaged else "Non-Defective"
+                        blade_results.append({"Blade ID": blade_id, "Classification": classification})
+                        blade_id += 1
+
+            if not blade_results:
+                results.append({"id": image_id, "name": image.filename, "classification": "Not a blade"})
             else:
-                classification = "Damaged" if is_damaged else "Non-Defective"
+                results.extend(blade_results)
 
-            results.append({"id": image_id, "name": image.filename, "classification": classification})
-
-            logging.info(f"✅ Classification: {image.filename} → {classification}")
+            logging.info(f"✅ Processed {image.filename}: {blade_results}")
 
             # Remove temporary image
             Path(temp_image_path).unlink()
@@ -84,4 +99,4 @@ async def predict(images: List[UploadFile] = File(...)):
     return {"results": results}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.1", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

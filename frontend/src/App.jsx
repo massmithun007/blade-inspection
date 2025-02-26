@@ -1,15 +1,23 @@
 import { useState } from "react";
 import ImageUpload from "./components/ImageUpload.jsx";
 import ResultsTable from "./components/ResultsTable.jsx";
+import "./App.css";
 
 export default function App() {
   const [results, setResults] = useState([]);
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Blade Inspection System</h1>
-      <ImageUpload setResults={setResults} />
-      <ResultsTable results={results} />
+    <div className="container">
+      <h1 className="title">🔍 Blade Inspection System</h1>
+
+      <div className="upload-section">
+        <ImageUpload setResults={setResults} />
+      </div>
+
+      <div className="results-section">
+        <h2 className="subtitle">📝 Inspection Results</h2>
+        <ResultsTable results={results} />
+      </div>
     </div>
   );
 }
