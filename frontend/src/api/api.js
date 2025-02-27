@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000/predict"; // FastAPI endpoint
+const API_URL = "https://blade-inspection-1.onrender.com"; // FastAPI endpoint
 
 export const uploadImage = async (imageFile) => {
   const formData = new FormData();
